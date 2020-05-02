@@ -46,11 +46,19 @@ input_schema.set_data_type("nutrition_quantities", "Quantity", min=0, max=float(
 def make_kwargs_for_min_max_check(dat):
     full_parameters = input_schema.create_full_parameters_dict(dat)
     return {"min_adjuster": full_parameters["Minimum Nutrition Adjustment Factor"]}
+def min_max_predicate(row, min_adjuster):
+    # this function is different from the default predicate - it returns True for success and the error message
+    # failure
+    if row["Max Nutrition"] >= row["Min Nutrition"] * min_adjuster:
+        return True
+    return f"Min Nutrtion of {row['Min Nutrition'] * min_adjuster} is bigger than {row['Max Nutrition']}"
 input_schema.add_data_row_predicate(
     "categories", predicate_name="Min Max Check",
     predicate=lambda row, min_adjuster: row["Max Nutrition"] >=
                                         row["Min Nutrition"] * min_adjuster,
-    predicate_kwargs_maker = make_kwargs_for_min_max_check)
+    predicate_kwargs_maker = make_kwargs_for_min_max_check,
+    predicate_failure_response = "Error Message" # indicating that this is a non-typical predicate
+)
 
 # The default-default of zero makes sense everywhere except for Max Nutrition
 input_schema.set_default_value("categories", "Max Nutrition", float("inf"))
